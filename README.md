@@ -31,7 +31,7 @@ multimodal-cardiac-diagnosis
 
 ## Requirements
 
-Please install the dependencies from requirements.txt using pip:
+Please install the dependencies from `requirements.txt` using pip:
 ```bash
 pip install -r requirements.txt
 ```
