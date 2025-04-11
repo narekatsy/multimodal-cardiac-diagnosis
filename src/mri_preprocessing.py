@@ -1,91 +1,55 @@
+import os
 import nibabel as nib
 import numpy as np
-import SimpleITK as sitk
-import matplotlib.pyplot as plt
-import os
+import torch
+import torch.nn.functional as F
+from glob import glob
 
-def resample_image(image, new_spacing=[1.0, 1.0, 1.0]):
-    """
-    Resample an image to a new spacing using SimpleITK.
-    
-    Args:
-        image (SimpleITK.Image): Input image.
-        new_spacing (list): Desired voxel spacing (e.g., [1.0, 1.0, 1.0]).
-    
-    Returns:
-        SimpleITK.Image: Resampled image.
-    """
-    original_spacing = image.GetSpacing()
-    original_size = image.GetSize()
-    
-    new_size = [
-        int(original_size[0] * original_spacing[0] / new_spacing[0]),
-        int(original_size[1] * original_spacing[1] / new_spacing[1]),
-        int(original_size[2] * original_spacing[2] / new_spacing[2]),
-    ]
-    
-    resampler = sitk.ResampleImageFilter()
-    resampler.SetSize(new_size)
-    resampler.SetOutputSpacing(new_spacing)
-    resampler.SetInterpolator(sitk.sitkLinear)
-    resampled_image = resampler.Execute(image)
-    
-    return resampled_image
+DATA_DIR = "data/MRI/training/"
+OUTPUT_DIR = "processed_data/MRI/training/"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def center_crop(img_data, target_shape=(256, 256, 10)):
-    """
-    Crop the center of an image to a target shape.
-    
-    Args:
-        img_data (numpy.ndarray): Input image data.
-        target_shape (tuple): Desired shape (x, y, z).
-    
-    Returns:
-        numpy.ndarray: Cropped image data.
-    """
-    start_x = (img_data.shape[0] - target_shape[0]) // 2
-    start_y = (img_data.shape[1] - target_shape[1]) // 2
-    start_z = (img_data.shape[2] - target_shape[2]) // 2
-    
-    cropped = img_data[
-        start_x:start_x + target_shape[0],
-        start_y:start_y + target_shape[1],
-        start_z:start_z + target_shape[2],
-    ]
-    return cropped
+TARGET_SHAPE = (128, 128, 16)
 
-def preprocess_mri(nii_path, target_shape=(256, 256, 10)):
-    """
-    Preprocess an MRI scan (resample, normalize, crop).
-    
-    Args:
-        nii_path (str): Path to the .nii.gz file.
-        target_shape (tuple): Desired output shape (x, y, z).
-    
-    Returns:
-        numpy.ndarray: Preprocessed image data.
-    """
-    img = nib.load(nii_path)
-    img = nib.as_closest_canonical(img)
+def load_mri(file_path):
+    """ Load a .nii.gz MRI file and return a numpy array. """
+    img = nib.load(file_path)
     img_data = img.get_fdata()
+    return img_data
 
-    img_data = (img_data - np.min(img_data)) / (np.max(img_data) - np.min(img_data))
+def normalize_mri(image):
+    """ Normalize MRI intensity values to range [0, 1]. """
+    image = (image - np.min(image)) / (np.max(image) - np.min(image) + 1e-8)
+    return image
 
-    sitk_img = sitk.ReadImage(nii_path)
-    resampled_img = resample_image(sitk_img, new_spacing=[1.0, 1.0, 1.0])
-    resampled_data = sitk.GetArrayFromImage(resampled_img)
+def preprocess_mri(file_path):
+    """ Load, normalize, resize, and save MRI. """
+    filename = os.path.basename(file_path).replace(".nii.gz", ".npy")
+    image = load_mri(file_path)
 
-    cropped_data = center_crop(resampled_data, target_shape)
+    print(f"Original shape: {image.shape}")
 
-    return cropped_data
+    if len(image.shape) == 4:
+        image = image[..., 0]
+
+    image = normalize_mri(image)
+    image_tensor = torch.tensor(image, dtype=torch.float32).unsqueeze(0).unsqueeze(0)  # (1, 1, D, H, W)
+    image_resized = F.interpolate(image_tensor, size=TARGET_SHAPE, mode='trilinear', align_corners=False)
+    image_resized = image_resized.squeeze().numpy()
+
+    np.save(os.path.join(OUTPUT_DIR, filename), image_resized)
+
+    return image_resized
+
+def process_all_mris():
+    """ Process all MRI scans in dataset. """
+    mri_files = glob(os.path.join(DATA_DIR, "*/*.nii.gz"))
+    
+    for file in mri_files:
+        print(f"Processing {file}...")
+        preprocess_mri(file)
+
+    print("MRI preprocessing completed!")
 
 if __name__ == "__main__":
-    nii_path = os.path.join("data", "MRI", "training", "patient001", "patient001_4d.nii.gz")
-
-    preprocessed_data = preprocess_mri(nii_path)
-    
-    plt.imshow(preprocessed_data[:, :, 5, 0], cmap="gray")
-    plt.title("Preprocessed MRI Slice")
-    plt.axis("off")
-    plt.show()
-
+    process_all_mris()
