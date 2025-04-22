@@ -173,3 +173,5 @@ cython_debug/
 # Other
 ECG/
 MRI/
+metadata/
+processed_data/
