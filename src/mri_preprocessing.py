@@ -5,9 +5,9 @@ import torch
 import torch.nn.functional as F
 from glob import glob
 
-DATA_DIR = "data/MRI/training/"
-OUTPUT_DIR = "processed_data/MRI/training/"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+input_dir = "split_data/MRI/training/"
+output_dir = "processed_data/MRI/training/"
+os.makedirs(output_dir, exist_ok=True)
 
 TARGET_SHAPE = (128, 128, 16)
 
@@ -37,13 +37,13 @@ def preprocess_mri(file_path):
     image_resized = F.interpolate(image_tensor, size=TARGET_SHAPE, mode='trilinear', align_corners=False)
     image_resized = image_resized.squeeze().numpy()
 
-    np.save(os.path.join(OUTPUT_DIR, filename), image_resized)
+    np.save(os.path.join(output_dir, filename), image_resized)
 
     return image_resized
 
 def process_all_mris():
     """ Process all MRI scans in dataset. """
-    mri_files = glob(os.path.join(DATA_DIR, "*/*.nii.gz"))
+    mri_files = glob(os.path.join(input_dir, "*/*.nii.gz"))
     
     for file in mri_files:
         print(f"Processing {file}...")

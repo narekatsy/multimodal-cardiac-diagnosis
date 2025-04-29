@@ -3,7 +3,7 @@ import numpy as np
 import glob
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-input_dir = "data/ECG/"
+input_dir = "split_data/ECG/training/"
 output_dir = "processed_data/metadata/ecg/"
 os.makedirs(output_dir, exist_ok=True)
 

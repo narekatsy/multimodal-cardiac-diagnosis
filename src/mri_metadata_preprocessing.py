@@ -4,7 +4,7 @@ import glob
 import json
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-input_dir = "data/MRI/training/"
+input_dir = "split_data/MRI/training/"
 output_dir = "processed_data/metadata/mri/"
 os.makedirs(output_dir, exist_ok=True)
 

@@ -4,10 +4,9 @@ import numpy as np
 import wfdb
 from tqdm import tqdm
 
-RAW_DATA_PATH = "data/ECG/"
-PROCESSED_DATA_PATH = "processed_data/ECG/"
-
-os.makedirs(PROCESSED_DATA_PATH, exist_ok=True)
+input_dir = "split_data/ECG/training/"
+output_dir= "processed_data/ECG/"
+os.makedirs(output_dir, exist_ok=True)
 
 def high_pass_filter(signal, sampling_rate, cutoff=0.5):
     """Apply a high-pass filter to remove baseline wander."""
@@ -33,7 +32,7 @@ def normalize_signal(signal):
 
 def process_ecg_files():
     """Process all ECG files found in patient subdirectories."""
-    files = glob.glob(os.path.join(RAW_DATA_PATH, "**/*.dat"), recursive=True)
+    files = glob.glob(os.path.join(input_dir, "**/*.dat"), recursive=True)
 
     if not files:
         print("❌ No .dat files found! Check the folder structure.")
@@ -53,7 +52,7 @@ def process_ecg_files():
             normalized_ecg = normalize_signal(filtered_ecg)
 
             filename = os.path.basename(file).replace(".dat", ".npy")
-            save_path = os.path.join(PROCESSED_DATA_PATH, filename)
+            save_path = os.path.join(output_dir, filename)
             np.save(save_path, normalized_ecg)
 
             print(f"✅ Processed and saved: {save_path}")
