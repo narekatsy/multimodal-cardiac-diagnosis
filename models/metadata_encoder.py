@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class MetadataEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim=32, embed_dim=64):
+    def __init__(self, input_dim, hidden_dim=256, embed_dim=512):
         super(MetadataEncoder, self).__init__()
         
         self.encoder = nn.Sequential(

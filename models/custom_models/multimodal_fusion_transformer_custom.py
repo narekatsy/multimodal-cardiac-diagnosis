@@ -2,17 +2,17 @@ import torch
 import torch.nn as nn
 
 class MultimodalFusionTransformer(nn.Module):
-    def __init__(self, embed_dim=512, num_heads=4, num_layers=2, num_classes=11):
+    def __init__(self, embed_dim=64, num_heads=4, num_layers=2, num_classes=11):
         super(MultimodalFusionTransformer, self).__init__()
 
         self.embed_dim = embed_dim
 
-        # Mask tokens for missing modalities
+        # Learnable mask tokens for missing modalities
         self.mask_token_mri = nn.Parameter(torch.randn(1, 1, embed_dim))
         self.mask_token_ecg = nn.Parameter(torch.randn(1, 1, embed_dim))
         self.mask_token_meta = nn.Parameter(torch.randn(1, 1, embed_dim))
 
-        # Positional encoding
+        # Positional encoding for 3 tokens
         self.pos_embedding = nn.Parameter(torch.randn(1, 3, embed_dim))
 
         # Transformer encoder
@@ -21,20 +21,22 @@ class MultimodalFusionTransformer(nn.Module):
 
         # Classification head
         self.classifier = nn.Sequential(
-            nn.Linear(embed_dim, 256),
+            nn.Linear(embed_dim, 64),
             nn.ReLU(),
-            nn.Linear(256, num_classes)
+            nn.Linear(64, num_classes)
         )
 
     def forward(self, mri_emb=None, ecg_emb=None, meta_emb=None):
+        # Each embedding expected shape: (B, D)
         B = mri_emb.shape[0] if mri_emb is not None else \
             ecg_emb.shape[0] if ecg_emb is not None else \
             meta_emb.shape[0]
 
+        # Add dimension: (B, 1, D)
         tokens = []
 
         if mri_emb is not None:
-            tokens.append(mri_emb.unsqueeze(1))  # (B, 1, D)
+            tokens.append(mri_emb.unsqueeze(1))
         else:
             tokens.append(self.mask_token_mri.expand(B, 1, -1))
 
@@ -49,11 +51,13 @@ class MultimodalFusionTransformer(nn.Module):
             tokens.append(self.mask_token_meta.expand(B, 1, -1))
 
         x = torch.cat(tokens, dim=1)  # (B, 3, D)
-        x = x + self.pos_embedding[:, :x.size(1), :]
+        x = x + self.pos_embedding[:, :x.size(1), :]  # Add positional info
 
         x = self.transformer(x)  # (B, 3, D)
 
+        # Aggregate by mean over tokens
         fused = x.mean(dim=1)  # (B, D)
 
         out = self.classifier(fused)  # (B, num_classes)
         return out
+
