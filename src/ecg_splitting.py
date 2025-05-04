@@ -2,7 +2,6 @@ import os
 import glob
 import shutil
 from sklearn.model_selection import train_test_split
-from collections import defaultdict
 from collections import Counter
 
 INPUT_DIR = "data/ECG/"
@@ -26,26 +25,27 @@ def extract_label(hea_path):
 def find_record_files(base_dir):
     """Find all unique record base names (without extension)."""
     dat_files = glob.glob(os.path.join(base_dir, "**/*.dat"), recursive=True)
-    return [os.path.splitext(f)[0] for f in dat_files]
+    return sorted(set(os.path.splitext(f)[0] for f in dat_files))  # remove duplicates, sort for consistency
 
 def copy_record(record_base, destination_dir):
-    """Copy all files (.hea, .dat, .atr, etc.) related to a record."""
-    extensions = ['.hea', '.dat', '.atr', '.xml']
-    for ext in extensions:
+    """Copy .hea and .dat files into per-patient folder."""
+    folder_name = os.path.basename(os.path.dirname(record_base))
+    dest_patient_dir = os.path.join(destination_dir, folder_name)
+    os.makedirs(dest_patient_dir, exist_ok=True)
+
+    for ext in ['.hea', '.dat']:  # Ignore .xyz
         src = record_base + ext
         if os.path.exists(src):
-            shutil.copy(src, os.path.join(destination_dir, os.path.basename(src)))
+            shutil.copy(src, os.path.join(dest_patient_dir, os.path.basename(src)))
 
 def stratified_split(records, labels, test_size=0.2):
-    """Split records into stratified train/test sets."""
     return train_test_split(records, test_size=test_size, stratify=labels, random_state=42)
 
 def main():
     record_bases = find_record_files(INPUT_DIR)
     print(f"Found {len(record_bases)} ECG records.")
 
-    records = []
-    labels = []
+    records, labels = [], []
 
     for record_base in record_bases:
         hea_path = record_base + ".hea"
@@ -57,31 +57,37 @@ def main():
     print(f"{len(records)} records have usable labels.")
 
     label_counts = Counter(labels)
-    filtered_records = []
-    filtered_labels = []
+    filtered_records, filtered_labels = [], []
 
     for r, l in zip(records, labels):
         if label_counts[l] >= 2:
             filtered_records.append(r)
             filtered_labels.append(l)
 
-    print(f"{len(filtered_records)} records after filtering labels with at least 2 samples.")
+    print(f"{len(filtered_records)} records after filtering rare labels.")
 
-    if len(filtered_labels) == 0:
-        print("❌ No valid labels with at least 2 samples. Aborting.")
+    if not filtered_labels:
+        print("❌ No valid labels after filtering. Aborting.")
         return
 
-    train_records, test_records = stratified_split(filtered_records, filtered_labels, test_size=SPLIT_RATIO)
+    train_records, test_records = stratified_split(filtered_records, filtered_labels, SPLIT_RATIO)
+    print(f"✅ Splitting: {len(train_records)} train / {len(test_records)} test")
 
-    print(f"✅ Splitting {len(records)} ECG records → {len(train_records)} train / {len(test_records)} test")
+    seen_train, seen_test = set(), set()
 
     for record in train_records:
-        copy_record(record, TRAIN_DIR)
+        folder = os.path.basename(os.path.dirname(record))
+        if folder not in seen_train:
+            seen_train.add(folder)
+            copy_record(record, TRAIN_DIR)
 
     for record in test_records:
-        copy_record(record, TEST_DIR)
+        folder = os.path.basename(os.path.dirname(record))
+        if folder not in seen_test and folder not in seen_train:  # Avoid overlap
+            seen_test.add(folder)
+            copy_record(record, TEST_DIR)
 
-    print("✅ ECG stratified split completed.")
+    print("✅ ECG stratified split completed with patient-based folders and no duplicates.")
 
 if __name__ == "__main__":
     main()

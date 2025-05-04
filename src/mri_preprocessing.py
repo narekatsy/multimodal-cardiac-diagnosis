@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from glob import glob
 
 input_dir = "split_data/MRI/training/"
-output_dir = "processed_data/MRI/training/"
+output_dir = "processed_data/mri/training/scans/"
 os.makedirs(output_dir, exist_ok=True)
 
 TARGET_SHAPE = (128, 128, 16)
@@ -24,7 +24,8 @@ def normalize_mri(image):
 
 def preprocess_mri(file_path):
     """ Load, normalize, resize, and save MRI. """
-    filename = os.path.basename(file_path).replace(".nii.gz", ".npy")
+    patient_id = os.path.basename(os.path.dirname(file_path))
+    filename = f"{patient_id}.npy"
     image = load_mri(file_path)
 
     print(f"Original shape: {image.shape}")

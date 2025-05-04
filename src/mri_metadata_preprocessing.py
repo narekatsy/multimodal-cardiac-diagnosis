@@ -5,7 +5,7 @@ import json
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 input_dir = "split_data/MRI/training/"
-output_dir = "processed_data/metadata/mri/"
+output_dir = "processed_data/mri/training/metadata/"
 os.makedirs(output_dir, exist_ok=True)
 
 all_metadata = []
@@ -41,15 +41,24 @@ for i, entry in enumerate(all_metadata):
     entry["Weight"] = height_weight_scaled[i][1]
 
 # Save per patient
+metadata_output_dir = "processed_data/mri/training/metadata/"
+label_output_dir = "processed_data/mri/training/labels/"
+os.makedirs(metadata_output_dir, exist_ok=True)
+os.makedirs(label_output_dir, exist_ok=True)
+
 for entry in all_metadata:
-    vec = np.array([
+    metadata_vec = np.array([
         entry["ED"],
         entry["ES"],
         entry["NbFrame"],
         entry["Height"],
-        entry["Weight"],
-        entry["Group"]
+        entry["Weight"]
     ], dtype=np.float32)
-    np.save(os.path.join(output_dir, f"{entry['patient_id']}.npy"), vec)
+    label_vec = np.array(entry["Group"], dtype=np.int64)
+
+    patient_id = entry['patient_id']
+    np.save(os.path.join(metadata_output_dir, f"{patient_id}.npy"), metadata_vec)
+    np.save(os.path.join(label_output_dir, f"{patient_id}.npy"), label_vec)
+
 
 print("✅ MRI metadata preprocessing complete.")

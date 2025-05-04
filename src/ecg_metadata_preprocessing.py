@@ -4,71 +4,101 @@ import glob
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 input_dir = "split_data/ECG/training/"
-output_dir = "processed_data/metadata/ecg/"
+output_dir = "processed_data/ecg/training/metadata/"
 os.makedirs(output_dir, exist_ok=True)
 
-all_metadata = []
-usable_entries = []
+all_entries = []
 
-for hea_file in glob.glob(os.path.join(input_dir, "**/*.hea"), recursive=True):
-    with open(hea_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        patient_meta = {"patient_id": os.path.basename(hea_file).split(".")[0]}
+DIAGNOSIS_MAP = {
+    "Myocardial infarction": 0,
+    "Cardiomyopathy": 1,
+    "Heart failure (NYHA 2)": 1,
+    "Heart failure (NYHA 3)": 1,
+    "Heart failure (NYHA 4)": 1,
+    "Bundle branch block": 2,
+    "Dysrhythmia": 3,
+    "Hypertrophy": 4,
+    "Valvular heart disease": 5,
+    "Myocarditis": 6,
+    "Palpitation": 7,
+    "Stable angina": 7,
+    "Unstable angina": 7,
+    "Miscellaneous": 7,
+    "Healthy control": 8,
+}
 
-        # Parse metadata from lines starting with #
-        for line in lines:
+for hea_path in glob.glob(os.path.join(input_dir, "**/*.hea"), recursive=True):
+    patient_id = os.path.basename(os.path.dirname(hea_path))
+    record_id = os.path.splitext(os.path.basename(hea_path))[0]
+
+    metadata = {"patient_id": patient_id, "record_id": record_id}
+
+    with open(hea_path, "r", encoding="utf-8") as f:
+        for line in f:
             if line.startswith("#"):
                 line = line.strip("# ").strip()
                 if line.startswith("age:"):
                     try:
-                        patient_meta["age"] = int(line.split(":", 1)[1].strip())
+                        metadata["age"] = int(line.split(":", 1)[1].strip())
                     except:
                         continue
                 elif line.startswith("sex:"):
-                    patient_meta["sex"] = line.split(":", 1)[1].strip().lower()
+                    metadata["sex"] = line.split(":", 1)[1].strip().lower()
                 elif line.startswith("Smoker:"):
-                    patient_meta["smoker"] = line.split(":", 1)[1].strip().lower()
+                    metadata["smoker"] = line.split(":", 1)[1].strip().lower()
                 elif line.startswith("Number of coronary vessels involved:"):
-                    val = line.split(":")[1].strip()
                     try:
-                        patient_meta["vessels_involved"] = int(val)
+                        metadata["vessels_involved"] = int(line.split(":", 1)[1].strip())
                     except:
-                        patient_meta["vessels_involved"] = 0  # fallback
+                        metadata["vessels_involved"] = 0
 
-        # Check if minimum fields are present
-        if all(k in patient_meta for k in ["age", "sex", "smoker", "vessels_involved"]):
-            all_metadata.append(patient_meta)
+    if all(k in metadata for k in ["age", "sex", "smoker", "vessels_involved"]):
+        all_entries.append(metadata)
 
-# Encode categorical variables
-sex_encoder = LabelEncoder()
-smoker_encoder = LabelEncoder()
+# Encode categorical values
+sex_enc = LabelEncoder()
+smoker_enc = LabelEncoder()
 
-sex_encoded = sex_encoder.fit_transform([x["sex"] for x in all_metadata])
-smoker_encoded = smoker_encoder.fit_transform([x["smoker"] for x in all_metadata])
+sex_encoded = sex_enc.fit_transform([x["sex"] for x in all_entries])
+smoker_encoded = smoker_enc.fit_transform([x["smoker"] for x in all_entries])
 
-for idx, entry in enumerate(all_metadata):
-    entry["sex"] = sex_encoded[idx]
-    entry["smoker"] = smoker_encoded[idx]
-
-# Normalize continuous features
+# Normalize continuous values
 scaler = MinMaxScaler()
-age_vessels = np.array([[x["age"], x["vessels_involved"]] for x in all_metadata])
+age_vessels = np.array([[x["age"], x["vessels_involved"]] for x in all_entries])
 age_vessels_scaled = scaler.fit_transform(age_vessels)
 
-for i, entry in enumerate(all_metadata):
-    entry["age"] = age_vessels_scaled[i][0]
-    entry["vessels_involved"] = age_vessels_scaled[i][1]
+# Final output
+metadata_output_dir = "processed_data/ecg/training/metadata/"
+label_output_dir = "processed_data/ecg/training/labels/"
+os.makedirs(metadata_output_dir, exist_ok=True)
+os.makedirs(label_output_dir, exist_ok=True)
 
-# Save per patient
-for entry in all_metadata:
+for i, entry in enumerate(all_entries):
+    diagnosis_label = None
+    hea_path = os.path.join(input_dir, entry["patient_id"], entry["record_id"] + ".hea")
+    with open(hea_path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("# Reason for admission:"):
+                reason = line.strip().split(":")[-1].strip()
+                for key in DIAGNOSIS_MAP:
+                    if key.lower() in reason.lower():
+                        diagnosis_label = DIAGNOSIS_MAP[key]
+                        break
+                break
+
+    if diagnosis_label is None:
+        continue
+
     vec = np.array([
-        entry["age"],
-        entry["sex"],
-        entry["smoker"],
-        entry["vessels_involved"]
+        age_vessels_scaled[i][0],
+        sex_encoded[i],
+        smoker_encoded[i],
+        age_vessels_scaled[i][1]
     ], dtype=np.float32)
-    
-    out_path = os.path.join(output_dir, f"{entry['patient_id']}.npy")
-    np.save(out_path, vec)
+
+    filename = f"{entry['patient_id']}_{entry['record_id']}.npy"
+    np.save(os.path.join(metadata_output_dir, filename), vec)
+    np.save(os.path.join(label_output_dir, filename), np.array(diagnosis_label, dtype=np.int64))
+
 
 print("✅ ECG metadata preprocessing complete.")
