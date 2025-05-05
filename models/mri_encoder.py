@@ -5,6 +5,7 @@ import torchvision.models.video as models_video
 class MRIEncoder(nn.Module):
     def __init__(self, embed_dim=512):
         super(MRIEncoder, self).__init__()
+        self.dropout = nn.Dropout(0.5)
 
         # Load pretrained 3D ResNet18
         self.backbone = models_video.r3d_18(pretrained=True)
@@ -17,4 +18,5 @@ class MRIEncoder(nn.Module):
         # x: (B, 1, D, H, W)
         features = self.backbone(x)  # (B, 512)
         embeddings = self.proj_head(features)  # (B, embed_dim)
+        embeddings = self.dropout(embeddings)
         return embeddings

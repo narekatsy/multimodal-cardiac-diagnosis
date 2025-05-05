@@ -12,9 +12,9 @@ from multimodal_fusion_transformer import MultimodalFusionTransformer
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyperparameters
-batch_size = 4
-num_epochs = 2
-learning_rate = 0.01
+batch_size = 8
+num_epochs = 30
+learning_rate = 1e-4
 num_classes = 11
 
 # Datasets
@@ -45,7 +45,13 @@ ecg_encoder.load_state_dict(torch.load('checkpoints/pretrained_ecg_encoder.pt'))
 
 # Loss & Optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(fusion_model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(
+    list(fusion_model.parameters()) +
+    list(mri_encoder.parameters()) +
+    list(ecg_encoder.parameters()),
+    lr=learning_rate,
+    weight_decay=1e-5  # L2 reg
+)
 
 # Training Loop
 for epoch in range(num_epochs):

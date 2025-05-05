@@ -23,6 +23,7 @@ class MultimodalFusionTransformer(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(embed_dim, 256),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Linear(256, num_classes)
         )
 

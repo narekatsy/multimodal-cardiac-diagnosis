@@ -27,6 +27,7 @@ class BasicBlock1D(nn.Module):
 class ResNet1D(nn.Module):
     def __init__(self, block, num_blocks, input_channels=15, embed_dim=512):
         super(ResNet1D, self).__init__()
+        self.dropout = nn.Dropout(0.5)
         self.in_planes = 64
 
         self.conv1 = nn.Conv1d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
@@ -56,6 +57,7 @@ class ResNet1D(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x).squeeze(-1)  # (B, 512)
         x = self.proj_head(x)            # (B, embed_dim)
+        x = self.dropout(x)              # apply dropout
         return x
 
 def ECGEncoder():

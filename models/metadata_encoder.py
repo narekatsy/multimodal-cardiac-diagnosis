@@ -8,6 +8,7 @@ class MetadataEncoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
+            nn.Dropout(0.3), # small dropout
             nn.Linear(hidden_dim, embed_dim),
             nn.ReLU()
         )

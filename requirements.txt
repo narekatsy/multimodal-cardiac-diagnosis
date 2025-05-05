@@ -3,3 +3,8 @@ pandas
 matplotlib
 nibabel
 wfdb
+scikit-learn
+torch
+torchvision
+torchaudio
+--extra-index-url https://download.pytorch.org/whl/cu121
