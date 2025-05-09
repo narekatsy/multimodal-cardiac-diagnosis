@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import glob
-import json
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 input_dir = "split_data/MRI/training/"

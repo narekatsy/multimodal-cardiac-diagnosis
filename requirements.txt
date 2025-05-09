@@ -1,8 +1,12 @@
 numpy
 pandas
 matplotlib
+seaborn
 nibabel
 wfdb
+glob
+tqdm
+shutil
 scikit-learn
 torch
 torchvision

@@ -174,5 +174,5 @@ cython_debug/
 ECG/
 MRI/
 metadata/
-processed_data/
-split_data/
+mri/
+ecg/
