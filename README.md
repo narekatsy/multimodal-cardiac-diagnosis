@@ -175,7 +175,7 @@ The key outputs of this project include:
 
 ## Acknowledgments
 
-I would like to thank [Anna Tshngryan](https://github.com/anna-tshngryan), my project supervisor, for her invaluable guidance throughout this project, suggesting improvements and providing key insights.
+I would like to thank [Anna Tshngryan](https://www.linkedin.com/in/anna-tshngryan-783901149/), my project supervisor, for her invaluable guidance throughout this project, suggesting improvements and providing key insights.
 
 Special thanks to [Dr. Habet Madoyan](https://people.aua.am/team_member/habet-madoyan-2/), for providing dedicated computing resources to train the models, greatly accelerating the process.
 
