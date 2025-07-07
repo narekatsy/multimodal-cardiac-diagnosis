@@ -2,8 +2,9 @@
 
 ## Overview
 
-This project explores the classification of cardiovascular conditions using deep learning models trained on three different modalities: cardiac MRI volumes, ECG signals and patient metadata. The goal is to analyze the feasibility and performance of unimodal (MRI-only and ECG-only) and multimodal (fusion) learning architectures for cardiac disease detection. The work is inspired by real-world challenges in diagnosing heart conditions using heterogeneous sources of medical data.
-
+This project explores the classification of cardiovascular conditions using deep learning models trained on three different modalities: cardiac MRI volumes, ECG signals and patient metadata. The goal is to analyze the feasibility and performance of unimodal (MRI-only and ECG-only) and multimodal (fusion) learning architectures for cardiac disease detection. The work is inspired by real-world challenges in diagnosing heart conditions using heterogeneous sources of medical data.  
+This project is my capstone submission for the Bachelor of Science in Data Science program at the American University of Armenia.  
+You can also view the accompanying presentation [here](./assets/capstone_presentation.pdf).
 
 ## EDA Insights
 
